@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CO₂ Emission Predictor</title>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            max-width: 900px;
+            margin: auto;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            border: 1px solid #555;
+            text-align: center;
+        }
+        th {
+            background-color: #333;
+        }
+        input {
+            width: 100%;
+            background-color: #333;
+            color: white;
+            border: none;
+            text-align: center;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #output {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #4caf50;
+        }
+    </style>
+</head>
+<body>
+    <h1>CO₂ Emission Predictor</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Time Step</th>
+                <th>Industrial Output</th>
+                <th>Energy Consumption</th>
+                <th>Transport Emissions</th>
+                <th>Population Density</th>
+                <th>Temperature</th>
+                <th>Humidity</th>
+                <th>Renewable Energy Share</th>
+                <th>Carbon Tax</th>
+                <th>Energy Efficiency</th>
+                <th>Traffic Index</th>
+                <th>Forest Cover</th>
+                <th>Industrial Waste</th>
+                <th>Urbanization Rate</th>
+            </tr>
+        </thead>
+        <tbody id="dataTable">
+            <!-- Rows will be added dynamically -->
+        </tbody>
+    </table>
+    <button onclick="fillDefault()">Fill Automatically</button>
+    <button onclick="predict()">Predict</button>
+    <div id="output"></div>
+    
+    <script>
+        const SEQUENCE_LENGTH = 10;
+        const FEATURES = 13;
+        
+        function createTable() {
+            let table = document.getElementById("dataTable");
+            table.innerHTML = ""; // Clear previous entries
+            for (let i = 0; i < SEQUENCE_LENGTH; i++) {
+                let row = `<tr>
+                    <td>${i + 1}</td>
+                    ${Array(FEATURES).fill(0).map(() => "<td><input type='number' value='100'></td>").join('')}
+                </tr>`;
+                table.innerHTML += row;
+            }
+        }
+        
+        function getData() {
+            let table = document.getElementById("dataTable");
+            let data = [];
+            for (let row of table.rows) {
+                let values = [];
+                for (let i = 1; i <= FEATURES; i++) {
+                    values.push(parseFloat(row.cells[i].children[0].value));
+                }
+                data.push(values);
+            }
+            return { sequences: [data] };
+        }
+        
+        function predict() {
+            fetch("http://localhost:9515/predict", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(getData())
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("output").innerText = "Predicted CO₂ Emission: " + data.predictions[0].toFixed(2);
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                document.getElementById("output").innerText = "Error predicting emissions";
+            });
+        }
+        
+        function fillDefault() {
+            let inputs = document.querySelectorAll("input");
+            inputs.forEach(input => input.value = Math.floor(Math.random() * 200));
+        }
+        
+        createTable();
+    </script>
+</body>
+</html>
