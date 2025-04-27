@@ -21,6 +21,11 @@ FEATURES = ['industrial_output', 'energy_consumption', 'transport_emissions',
             'traffic_index', 'forest_cover', 'industrial_waste', 'urbanization_rate']
 SEQUENCE_LENGTH = 10
 
+@app.route('/')
+def home():
+    return jsonify({'message': 'API is up and running'})
+
+
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
