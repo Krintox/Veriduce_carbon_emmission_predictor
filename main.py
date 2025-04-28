@@ -5,6 +5,7 @@ import numpy as np
 import tensorflow as tf
 import pickle
 from sklearn.preprocessing import RobustScaler
+from waitress import serve  # <-- Added waitress
 
 # Disable GPU and limit memory growth
 tf.config.set_visible_devices([], 'GPU')
@@ -36,30 +37,37 @@ FEATURES = ['industrial_output', 'energy_consumption', 'transport_emissions',
             'traffic_index', 'forest_cover', 'industrial_waste', 'urbanization_rate']
 SEQUENCE_LENGTH = 10
 
-@app.route('/health')
+@app.route('/health', methods=["GET"])
 def health_check():
-    return jsonify({"status": "healthy", "model_loaded": bool(model)})
+    return jsonify({"status": "healthy", "model_loaded": bool(model)}), 200
 
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
-        data = request.get_json()
+        data = request.get_json(force=True)
         if not data or "sequences" not in data:
             return jsonify({"error": "Missing 'sequences' in request body"}), 400
         
         sequences = np.array(data["sequences"])
-        if sequences.shape[1:] != (SEQUENCE_LENGTH, len(FEATURES)):
-            return jsonify({"error": f"Expected input shape ({SEQUENCE_LENGTH}, {len(FEATURES)})"}), 400
+
+        if sequences.ndim != 3:
+            return jsonify({"error": "Input must be a 3D array [batch_size, sequence_length, feature_dim]"}), 400
         
+        if sequences.shape[1:] != (SEQUENCE_LENGTH, len(FEATURES)):
+            return jsonify({"error": f"Expected input shape ({SEQUENCE_LENGTH}, {len(FEATURES)}), but got {sequences.shape[1:]}"}), 400
+        
+        # Scale each sequence individually
         scaled_sequences = np.array([feature_scaler.transform(seq) for seq in sequences])
-        predictions = model.predict(scaled_sequences, verbose=0)  # Disable TF logs
+        
+        predictions = model.predict(scaled_sequences, verbose=0)
         predicted_emissions = target_scaler.inverse_transform(predictions)
         
-        return jsonify({"predictions": predicted_emissions.flatten().tolist()})
-    
+        return jsonify({"predictions": predicted_emissions.flatten().tolist()}), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 9515))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    print(f"Starting server on port {port} using Waitress...")
+    serve(app, host="0.0.0.0", port=port)  # <-- Serve with Waitress
