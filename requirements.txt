@@ -17,3 +17,4 @@ networkx>=2.6.0
 flask
 flask-cors
 gunicorn
+waitress
