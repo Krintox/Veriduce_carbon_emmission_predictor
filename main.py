@@ -61,7 +61,6 @@ def health_check():
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
-        # Validate input
         data = request.get_json()
         if not data or "sequences" not in data:
             return jsonify({"error": "Missing 'sequences' in request body"}), 400
@@ -73,27 +72,21 @@ def predict():
                 "received": sequences.shape
             }), 400
         
-        # Convert to DataFrame for proper feature naming
-        scaled_seqs = []
-        for seq in sequences:
-            df = pd.DataFrame(seq, columns=FEATURES)
-            scaled_seqs.append(feature_scaler.transform(df))
-        scaled_sequences = np.array(scaled_seqs)
+        batch_size = sequences.shape[0]
+        sequences_reshaped = sequences.reshape(-1, len(FEATURES))  # (batch_size*10, 13)
+        scaled = feature_scaler.transform(sequences_reshaped)
+        scaled_sequences = scaled.reshape(batch_size, SEQUENCE_LENGTH, len(FEATURES))
         
-        # Predict with memory guard
-        predictions = model.predict(scaled_sequences, verbose=0, batch_size=1)
+        predictions = model.predict(scaled_sequences, verbose=0)
         predicted_emissions = target_scaler.inverse_transform(predictions)
         
         return jsonify({
-            "predictions": predicted_emissions.flatten().tolist(),
-            "scaled_input": scaled_sequences.tolist()  # For debugging
+            "predictions": predicted_emissions.flatten().tolist()
         })
     
     except Exception as e:
-        return jsonify({
-            "error": str(e),
-            "trace": str(e.__traceback__)  # Debugging aid
-        }), 500
+        return jsonify({"error": str(e)}), 500
+
 
 # ========== SERVER CONFIG ==========
 if __name__ == "__main__":
