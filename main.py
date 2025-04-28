@@ -9,7 +9,7 @@ from sklearn.preprocessing import RobustScaler
 tf.config.set_visible_devices([], 'GPU')
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "https://veri-duce.vercel.app"}})
 
 # Load model and scalers
 try:
