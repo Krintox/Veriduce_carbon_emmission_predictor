@@ -6,10 +6,11 @@ import tensorflow as tf
 import pickle
 from sklearn.preprocessing import RobustScaler
 
+# Disable GPU
 tf.config.set_visible_devices([], 'GPU')
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "https://veri-duce.vercel.app"}})
+CORS(app)
 
 # Load model and scalers
 try:
